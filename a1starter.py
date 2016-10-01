@@ -27,33 +27,8 @@ def read_tac(year):
     X - (ndocs x nfeats)
     Y - (ndocs)
     '''
-	# modify this according to your directory structure
-    sub_folder = '../data/tac%s' % year
+
     X, Y = [], []
-    
-    # labels
-    labels_f = 'tac%s.labels' % year
-    
-    fh = open(os.path.join(sub_folder, labels_f))
-    for line in fh:
-        docid, label = line.split()
-        Y.append(int(label))
-    
-    # tac 10
-    if year == '2010':
-        template = 'tac10-%04d.txt'
-        s, e = 1, 921
-    elif year == '2011':
-        template = 'tac11-%04d.txt'
-        s, e = 921, 1801
-        
-    for i in xrange(s, e):
-        fname = os.path.join(sub_folder, template % i)
-        X.append(extract_features(fname, n, lemmatize, lowercase))
-    
-    
-    nfeats = 100 # TODO: you'll have to figure out how many features you need
-    
     # convert indices to numpy array
     for j, x in enumerate(X):
         arr = np.zeros(nfeats)
