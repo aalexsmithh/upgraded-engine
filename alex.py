@@ -3,12 +3,14 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk import bigrams, trigrams
 import numpy as np
+from scipy import sparse, io
+import test
 
 def create_features(do_traindata,do_labels):
     train_data = []
     train_label = []
     csv.field_size_limit(sys.maxsize)
-    first = True
+    first = False
     if do_traindata:
         with open('datasets/train_in.csv', 'rb') as csvfile:
             read = csv.reader(csvfile, delimiter=',', quotechar='|')
@@ -34,7 +36,6 @@ def create_features(do_traindata,do_labels):
 
 def get_feature_for_csv(input_data_csv,input_labels_csv,n,lower,lemma):
     csv.field_size_limit(sys.maxsize)
-    first = True
     X, Y = [], []
 
     print 'load features', '...',
@@ -42,13 +43,9 @@ def get_feature_for_csv(input_data_csv,input_labels_csv,n,lower,lemma):
     
     print 'extract for each document', '...',
     with open(input_data_csv, 'rb') as csvfile:
-        read_a = csv.reader(csvfile, delimiter=',', quotechar='|')
-        read = [row for row in read_a]
-        for row in read:
-            if not first:
-                X.append(extract_features(row[1],n,lower,lemma,all_features))
-            first = False
-        first = True
+        read_X = [row for row in csv.reader(csvfile, delimiter=',', quotechar='|')]
+        for row in read_X[0:1000]:
+            X.append(extract_features(row[1],n,lower,lemma,all_features))
     csvfile.close()
     print 'assemble feature array', '...'
     for j, x in enumerate(X):
@@ -59,13 +56,12 @@ def get_feature_for_csv(input_data_csv,input_labels_csv,n,lower,lemma):
     X = np.vstack(tuple(X))
 
     with open(input_labels_csv, 'rb') as csvfile:
-        read = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in read:
-            if not first:
-                train_label.append(row[1])
-            first = False
+        read_Y = [row for row in csv.reader(csvfile, delimiter=',', quotechar='|')]
+        train_label = []
+        for row in read_Y[0:1000]:
+            train_label.append(row[1])
         Y = categorize(train_label)
-        first = True
+    del train_label, 
     return X, np.asarray(Y)
 
 def extract_features(input_docs,n,lower,lemma,input_features):
@@ -92,16 +88,21 @@ def extract_features(input_docs,n,lower,lemma,input_features):
     return indices
 
 def categorize(raw_labels):
-    labels = []
+    labels = [0] * len(raw_labels)
+    index = 0
     for label in raw_labels:
         if label == 'math':
-            labels.append(1)
-        if label == 'cs':
-            labels.append(2)
-        if label == 'stat':
-            labels.append(3)
-        if label == 'physics':
-            labels.append(4)
+            labels[index] = 1
+        elif label == 'cs':
+            labels[index] = 2
+        elif label == 'stat':
+            labels[index] = 3
+        elif label == 'physics':
+            labels[index] = 4
+        else:
+            print label, index
+            labels[index] = 0
+        index += 1
     return labels
 
 def create_feature_template(input_corpus,n,lower,lemma):
@@ -140,13 +141,15 @@ def create_feature_template(input_corpus,n,lower,lemma):
     return sorted(set(feature))
 
 def main():
-    X, Y= get_feature_for_csv('datasets/train_in.csv','datasets/train_out.csv',1,lower=True,lemma=True)
+    X, Y = get_feature_for_csv('datasets/train_in.csv','datasets/train_out.csv',1,lower=True,lemma=True)
     print X.shape, Y.shape
-    np.savez_compressed('X_a.npz', X)
-    np.savez_compressed('Y_a.npz', Y)
+    # np.savez_compressed('X_a.npz', sparse.csr_matrix(X))
+    # np.savez_compressed('Y_a.npz', sparse.csr_matrix(Y))
     # np.savetxt('X_a.gz',X)
     # np.savetxt('Y_a.gz',Y)
-    print X.shape, Y.shape
+    # io.mmwrite("X_b.mtx",sparse.csr_matrix(X))
+    # io.mmwrite("Y_b.mtx",sparse.csr_matrix(Y))
+    test.saveArray(X,Y,'lol')
 
 if __name__ == '__main__':
     # create_feature_template('datasets/train_in.csv',1,True,True)
